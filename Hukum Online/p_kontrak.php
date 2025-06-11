@@ -439,7 +439,7 @@ if ($conn->connect_error) {
                     <div class="party-type">Pengacara</div>
                     <div class="advokat-list">
                         <?php
-                        $result = $conn->query("SELECT * FROM advokat LIMIT 3");
+                        $result = $conn->query("SELECT * FROM advokat WHERE keahlian LIKE '%Ketenagakerjaan%'");
                         while ($row = $result->fetch_assoc()):
                         ?>
                         <div class="advokat-card">

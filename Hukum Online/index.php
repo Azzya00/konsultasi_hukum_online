@@ -1,8 +1,19 @@
 <?php
+session_start();
 $conn = new mysqli("localhost", "root", "", "layanan_hukum");
 if ($conn->connect_error) {
     die("Koneksi gagal: " . $conn->connect_error);
 }
+
+$user = null;
+if (isset($_SESSION['user_id'])) {
+    $stmt = $conn->prepare("SELECT id, nama, email, foto FROM users WHERE id = ?");
+    $stmt->bind_param("i", $_SESSION['user_id']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $user = $result->fetch_assoc();
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -34,6 +45,7 @@ if ($conn->connect_error) {
       display: flex;
       gap: 1.5rem;
       list-style: none;
+      align-items: center;
     }
 
     .navbar .nav-links a {
@@ -44,6 +56,44 @@ if ($conn->connect_error) {
 
     .navbar .nav-links .active a {
       color: #004aad;
+    }
+
+    /* Profile Dropdown */
+    .profile-container {
+      position: relative;
+    }
+
+    .profile-img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      cursor: pointer;
+    }
+
+    .profile-dropdown {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: 50px;
+      background-color: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      border-radius: 8px;
+      overflow: hidden;
+      z-index: 1000;
+      min-width: 150px;
+    }
+
+    .profile-dropdown a {
+      display: block;
+      padding: 10px;
+      text-decoration: none;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .profile-dropdown a:hover {
+      background-color: #f2f2f2;
     }
 
     /* Hero Section */
@@ -237,16 +287,27 @@ if ($conn->connect_error) {
   </style>
 </head>
 <body>
-  <!-- Navbar -->
+<!-- Navbar -->
   <nav class="navbar">
     <div class="logo">
       <img src="logo.png" alt="Logo SaifulMLaw">
     </div>
-    <ul class="nav-links">
-  <li class="active"><a href="index.php">Beranda</a></li>
-  <li><a href="langkah_hukum.php">Langkah Hukum</a></li>
-  <li><a href="riwayat_konsultasi.php">Riwayat</a></li>
-  <li><a href="#">Masuk</a></li>
+   <ul class="nav-links">
+    <li class="active"><a href="index.php">Beranda</a></li> <li><a href="langkah_hukum.php">Langkah Hukum</a></li>
+    <li><a href="riwayat_konsultasi.php">Riwayat</a></li>
+
+    <?php if ($user): ?>
+      <li class="profile-container">
+       <img src="uploads/<?= htmlspecialchars($user['foto'] ?? 'default.png') ?>" alt="Foto Profil" class="profile-img" onclick="toggleProfileMenu()">
+        <div class="profile-dropdown" id="profileDropdown">
+          <a href="user_profile.php">Profil Saya</a>
+          <a href="logout.php" onclick="return confirm('Yakin ingin logout?')">Logout</a>
+        </div>
+      </li>
+    <?php else: ?>
+      <li><a href="login.php">Masuk</a></li>
+      <li><a href="signup.php">Daftar</a></li>
+    <?php endif; ?>
 </ul>
   </nav>
 
@@ -421,6 +482,20 @@ $ulasan = $conn->query("SELECT * FROM ulasan ORDER BY created_at DESC LIMIT 5");
     }
 </script>
 
+<script>
+    function toggleProfileMenu() {
+      const dropdown = document.getElementById('profileDropdown');
+      dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    }
 
+    document.addEventListener('click', function(e) {
+      const profileImg = document.querySelector('.profile-img');
+      const dropdown = document.getElementById('profileDropdown');
+
+      if (!profileImg?.contains(e.target) && !dropdown?.contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
+    });
+  </script>
 </body>
 </html>
