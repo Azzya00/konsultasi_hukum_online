@@ -1,132 +1,124 @@
 <?php
-session_start(); // Pastikan session dimulai jika Anda menggunakan session user ID
-
-// Periksa apakah user sudah login. Jika tidak, redirect ke halaman login.
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php"); // Ganti dengan halaman login user Anda
-    exit;
-}
-
 $advokat_id = $_GET['advokat_id'] ?? 0;
 $layanan_id = $_GET['layanan_id'] ?? 0;
-$harga_layanan = $_GET['harga_layanan'] ?? 0;
-$harga_konsultasi = $_GET['harga_konsultasi'] ?? 0; // Pastikan ini juga diterima dari GET
 
 $conn = new mysqli("localhost", "root", "", "layanan_hukum");
-if ($conn->connect_error) {
-    die("Koneksi gagal: " . $conn->connect_error);
-}
+$advokat = $conn->query("SELECT * FROM advokat WHERE id = $advokat_id")->fetch_assoc();
+$layanan = $conn->query("SELECT * FROM layanan WHERE id = $layanan_id")->fetch_assoc();
 
-$advokat = null;
-if ($advokat_id > 0) {
-    $stmt = $conn->prepare("SELECT nama FROM advokat WHERE id = ?");
-    $stmt->bind_param("i", $advokat_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $advokat = $result->fetch_assoc();
-    $stmt->close();
-}
-
-$layanan = null;
-if ($layanan_id > 0) {
-    $stmt = $conn->prepare("SELECT nama_layanan, deskripsi, harga FROM layanan WHERE id = ?");
-    $stmt->bind_param("i", $layanan_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $layanan = $result->fetch_assoc();
-    $stmt->close();
-}
-
-if (!$advokat || !$layanan) {
-    echo "Data advokat atau layanan tidak ditemukan.";
-    exit;
-}
-
-// Hitung total harga
-$total_harga = $harga_layanan + $harga_konsultasi; // Hitung dari kedua harga
-
+$harga_layanan = $layanan['harga'];
+$harga_konsultasi = 0;
+$total = $harga_layanan + $harga_konsultasi;
 ?>
 
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pembayaran</title>
     <style>
-        /* (CSS Anda tetap sama seperti sebelumnya, tidak saya sertakan di sini untuk brevity) */
-        body { font-family: Arial, sans-serif; margin: 0; background-color: #f4f7f6; color: #333; }
-        .container { max-width: 800px; margin: 30px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #2c3e50; margin-bottom: 30px; }
-        .payment-summary, .payment-form { margin-bottom: 25px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
-        .payment-summary p { margin: 10px 0; font-size: 1.1em; }
-        .total-price { font-size: 1.5em; font-weight: bold; color: #007bff; margin-top: 15px; }
-        form label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; }
-        form select, form input[type="text"], form input[type="file"] {
-            width: calc(100% - 22px);
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 1em;
+        body { font-family: Arial, sans-serif; margin: 0; background: #f9f9f9; }
+        .header { background: #d29e00; padding: 20px 40px; color: white; font-size: 24px; font-weight: bold; }
+        .container { display: flex; justify-content: space-around; padding: 40px; gap: 20px; flex-wrap: wrap; }
+        .card, .form-box { background: white; padding: 20px; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .card { width: 300px; }
+        .form-box { width: 400px; }
+        .rekening-box { margin-top: 10px; padding: 10px; border: 1px dashed #ccc; background: #fefefe; display: none; }
+        .total-box { text-align: center; margin-top: 30px; font-size: 18px; font-weight: bold; }
+        .lanjut-btn {
+            background: #004aad; color: white;
+            border: none; padding: 12px 30px; border-radius: 8px;
+            font-size: 16px; cursor: pointer; margin-top: 20px;
         }
-        button {
-            background-color: #28a745;
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1.1em;
-            transition: background-color 0.3s ease;
-        }
-        button:hover { background-color: #218838; }
-        .alert-message {
-            padding: 10px;
-            margin-bottom: 15px;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-        .alert-success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
-        .alert-error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Detail Pembayaran</h2>
 
-        <div class="payment-summary">
-            <h3>Ringkasan Pesanan</h3>
-            <p><strong>Advokat:</strong> <?= htmlspecialchars($advokat['nama']) ?></p>
-            <p><strong>Layanan:</strong> <?= htmlspecialchars($layanan['nama_layanan']) ?></p>
-            <p><strong>Deskripsi Layanan:</strong> <?= htmlspecialchars($layanan['deskripsi']) ?></p>
-            <p><strong>Harga Layanan:</strong> Rp<?= number_format($harga_layanan, 0, ',', '.') ?></p>
-            <p><strong>Harga Konsultasi:</strong> Rp<?= number_format($harga_konsultasi, 0, ',', '.') ?></p>
-            <p class="total-price">Total yang harus dibayar: Rp<?= number_format($total_harga, 0, ',', '.') ?></p>
-        </div>
+<div class="header">
+    <span style="font-weight: normal; font-size: 16px;">SAIFULLAW</span> &nbsp;&nbsp; Pembayaran
+</div>
 
-        <div class="payment-form">
-            <h3>Form Pembayaran</h3>
-            <?php if (isset($_GET['status']) && $_GET['status'] == 'error_upload'): ?>
-                <div class="alert-message alert-error">Gagal mengunggah bukti pembayaran. Silakan coba lagi.</div>
-            <?php endif; ?>
-            <form action="proses_pembayaran.php" method="post" enctype="multipart/form-data">
-                <input type="hidden" name="user_id" value="<?= htmlspecialchars($_SESSION['user_id'] ?? '') ?>">
-                <input type="hidden" name="advokat_id" value="<?= htmlspecialchars($advokat_id) ?>">
-                <input type="hidden" name="layanan_id" value="<?= htmlspecialchars($layanan_id) ?>">
-                <input type="hidden" name="total_pembayaran" value="<?= htmlspecialchars($total_harga) ?>">
-                <input type="hidden" name="jenis_konsultasi" value="chat_telepon"> <label for="metode_pembayaran">Metode Pembayaran:</label>
-                <select id="metode_pembayaran" name="metode_pembayaran" required>
-                    <option value="">Pilih Metode</option>
-                    <option value="bank_transfer">Transfer Bank</option>
-                    </select>
-
-                <label for="bukti_transfer">Unggah Bukti Transfer:</label>
-                <input type="file" id="bukti_transfer" name="bukti_transfer" accept="image/*" required>
-
-                <button type="submit">Bayar Sekarang</button>
-            </form>
-        </div>
+<div class="container">
+    <!-- Profil Advokat -->
+    <div class="card">
+        <h3><?= $advokat['nama'] ?></h3>
+        <p><strong><?= $layanan['nama_layanan'] ?></strong></p>
+        <p><?= $advokat['keahlian'] ?></p>
+        <p>⭐ <?= number_format($advokat['rating'], 2) ?> dari 5 (<?= $advokat['total_review'] ?> review)</p>
+        <p>📆 <?= $advokat['pengalaman'] ?></p>
+        <p>🎓 <?= $advokat['pendidikan'] ?></p>
     </div>
+
+    <!-- Form Pembayaran -->
+    <div class="form-box">
+        <form action="proses_pembayaran.php" method="POST">
+            <input type="hidden" name="advokat_id" value="<?= $advokat_id ?>">
+            <input type="hidden" name="layanan_id" value="<?= $layanan_id ?>">
+            <input type="hidden" id="harga_layanan" value="<?= $harga_layanan ?>">
+
+            <label>Pilih Jenis Konsultasi:</label><br>
+            <input type="radio" name="jenis_konsultasi" value="chat_telepon" onclick="updateTotal()"> Telepon dan Chat (Rp350.000)<br>
+            <input type="radio" name="jenis_konsultasi" value="chat" onclick="updateTotal()"> Chat Saja (Rp30.000)<br><br>
+
+            <label for="metode_pembayaran">Metode Pembayaran:</label><br>
+            <select name="metode_pembayaran" onchange="tampilkanRekening()" required>
+                <option value="">-- Pilih --</option>
+                <option value="Transfer Bank">Transfer Bank</option>
+                <option value="E-Wallet">E-Wallet</option>
+            </select><br><br>
+
+            <div id="rekening-info" class="rekening-box"></div>
+
+            <label for="nama_pelanggan">Nama Anda:</label><br>
+            <input type="text" name="nama_pelanggan" required><br><br>
+
+            <label for="email_pelanggan">Email:</label><br>
+            <input type="email" name="email_pelanggan" required><br><br>
+
+            <!-- Total Harga -->
+            <div class="total-box">
+                Total: Rp<span id="total-display"><?= number_format($total, 0, ',', '.') ?></span>
+            </div>
+            <input type="hidden" name="total_harga" id="total_hidden" value="<?= $total ?>">
+
+            <button type="submit" class="lanjut-btn">Lanjutkan Pembayaran</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function updateTotal() {
+        const hargaLayanan = parseInt(document.getElementById("harga_layanan").value);
+        const radio = document.querySelector('input[name="jenis_konsultasi"]:checked');
+        let hargaKonsultasi = 0;
+
+        if (radio) {
+            if (radio.value === 'chat_telepon') {
+                hargaKonsultasi = 350000;
+            } else if (radio.value === 'chat') {
+                hargaKonsultasi = 30000;
+            }
+        }
+
+        const total = hargaLayanan + hargaKonsultasi;
+        document.getElementById("total-display").textContent = total.toLocaleString('id-ID');
+        document.getElementById("total_hidden").value = total;
+    }
+
+    function tampilkanRekening() {
+        const metode = document.querySelector('select[name="metode_pembayaran"]').value;
+        const rekeningBox = document.getElementById('rekening-info');
+
+        if (metode === 'Transfer Bank') {
+            rekeningBox.innerHTML = "<strong>No. Rekening:</strong><br>BCA: 1234567890 a.n SAIFULLAW";
+            rekeningBox.style.display = 'block';
+        } else if (metode === 'E-Wallet') {
+            rekeningBox.innerHTML = "<strong>No. E-Wallet:</strong><br>OVO/DANA: 081234567890 a.n SAIFULLAW";
+            rekeningBox.style.display = 'block';
+        } else {
+            rekeningBox.style.display = 'none';
+        }
+    }
+</script>
+
 </body>
 </html>

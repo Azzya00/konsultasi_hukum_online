@@ -1,151 +1,129 @@
 <?php
-session_start();
+include 'koneksi.php';
 
-// PENTING: Implementasi Pengecekan Login Admin di Sini (jika belum ada)
-/*
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_role'] !== 'admin') {
-    header("Location: ../login_admin.php"); // Atau ke halaman login admin Anda
-    exit;
-}
-*/
+// Proses hapus
+if (isset($_GET['hapus'])) {
+    $id = $_GET['hapus'];
 
-$conn = new mysqli("localhost", "root", "", "layanan_hukum");
-if ($conn->connect_error) {
-    die("Koneksi gagal: " . $conn->connect_error);
-}
-
-$advokat = [];
-$sql = "SELECT id, nama, email, spesialisasi, foto FROM advokat ORDER BY nama ASC";
-$result = $conn->query($sql);
-
-if ($result && $result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        $advokat[] = $row;
+    // Hapus foto dari folder jika ada
+    $foto_q = mysqli_query($conn, "SELECT foto FROM advokat WHERE id = $id");
+    $foto = mysqli_fetch_assoc($foto_q)['foto'];
+    if ($foto && file_exists("uploads_advokat/$foto")) {
+        unlink("uploads_advokat/$foto");
     }
-}
 
-$conn->close();
+    mysqli_query($conn, "DELETE FROM advokat WHERE id = $id");
+    header("Location: kelola_advokat.php");
+}
 ?>
 
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Kelola Advokat</title>
+    <title>Kelola Advokat</title>
     <style>
-        /* CSS Umum untuk Admin Panel (Sama dengan admin_dashboard.php dan kelola_pembayaran.php) */
-        body { font-family: Arial, sans-serif; margin: 0; background-color: #f4f7f6; color: #333; }
-        .header-admin { background-color: #34495e; color: white; padding: 20px; text-align: center; }
-        .header-admin h1 { margin: 0; font-size: 28px; }
-        .header-admin nav ul { list-style: none; padding: 0; margin: 10px 0 0; display: flex; justify-content: center; gap: 20px; }
-        .header-admin nav a { color: white; text-decoration: none; font-weight: bold; padding: 5px 10px; border-radius: 4px; transition: background-color 0.3s ease; }
-        .header-admin nav a:hover, .header-admin nav a.active { background-color: #2c3e50; }
-
-        .container { max-width: 1000px; margin: 30px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #2c3e50; margin-bottom: 30px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px 15px; border: 1px solid #ddd; text-align: left; }
-        th { background-color: #e9ecef; font-weight: bold; color: #555; }
-        tr:nth-child(even) { background-color: #f8f9fa; }
-        .text-center { text-align: center; }
-        .btn-action {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            text-decoration: none;
-            color: white;
-            transition: background-color 0.3s ease;
-            margin-right: 5px;
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            padding: 30px;
         }
-        .btn-primary { background-color: #007bff; }
-        .btn-primary:hover { background-color: #0056b3; }
-        .btn-danger { background-color: #dc3545; }
-        .btn-danger:hover { background-color: #c82333; }
-        .btn-success { background-color: #28a745; } /* Untuk tombol Tambah Advokat */
-        .btn-success:hover { background-color: #218838; }
 
-        .advokat-photo {
-            width: 50px;
-            height: 50px;
+        h2 {
+            color: #333;
+        }
+
+        a.tambah {
+            display: inline-block;
+            margin-bottom: 15px;
+            background: #004aad;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 5px;
+            text-decoration: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        table th, table td {
+            padding: 12px 10px;
+            border: 1px solid #ccc;
+            text-align: center;
+        }
+
+        th {
+            background: #d29e00;
+            color: white;
+        }
+
+        img {
             border-radius: 50%;
             object-fit: cover;
-            vertical-align: middle;
-            margin-right: 10px;
         }
-        .table-actions {
-            text-align: right;
-            margin-bottom: 15px;
+
+        a.edit, a.hapus {
+            padding: 5px 10px;
+            border-radius: 4px;
+            text-decoration: none;
+            color: white;
+        }
+
+        a.edit {
+            background: #28a745;
+        }
+
+        a.hapus {
+            background: #dc3545;
         }
     </style>
 </head>
 <body>
-    <div class="header-admin">
-        <h1>Admin Panel</h1>
-        <nav>
-            <ul>
-                <li><a href="admin_dashboard.php">Dashboard</a></li>
-                <li><a href="kelola_pembayaran.php">Kelola Pembayaran</a></li>
-                <li><a href="kelola_advokat.php" class="active">Kelola Advokat</a></li>
-                <li><a href="kelola_layanan.php">Kelola Layanan</a></li>
-                <li><a href="kelola_users.php">Kelola Pengguna</a></li>
-                <li><a href="../logout.php">Logout</a></li>
-            </ul>
-        </nav>
-    </div>
 
-    <div class="container">
-        <h2>Kelola Advokat</h2>
+<h2>Kelola Data Advokat</h2>
+<a href="tambah_advokat.php" class="tambah">+ Tambah Advokat</a>
 
-        <div class="table-actions">
-            <a href="tambah_advokat.php" class="btn-action btn-success">Tambah Advokat Baru</a>
-        </div>
+<table>
+    <tr>
+        <th>No</th>
+        <th>Nama</th>
+        <th>Pendidikan</th>
+        <th>Keahlian</th>
+        <th>Pengalaman</th>
+        <th>Jenis Konsultasi</th>
+        <th>Foto</th>
+        <th>Aksi</th>
+    </tr>
+    <?php
+    $no = 1;
+    $query = mysqli_query($conn, "SELECT * FROM advokat");
+    while ($data = mysqli_fetch_assoc($query)) :
+    ?>
+    <tr>
+        <td><?= $no++ ?></td>
+        <td><?= htmlspecialchars($data['nama']) ?></td>
+        <td><?= htmlspecialchars($data['pendidikan']) ?></td>
+        <td><?= htmlspecialchars($data['keahlian']) ?></td>
+        <td><?= htmlspecialchars($data['pengalaman']) ?></td>
+        <td><?= htmlspecialchars($data['jenis_konsultasi']) ?></td>
+        <td>
+            <?php if ($data['foto']) : ?>
+                <img src="uploads_advokat/<?= htmlspecialchars($data['foto']) ?>" width="60" height="60">
+            <?php else : ?>
+                Tidak ada
+            <?php endif; ?>
+        </td>
+        <td>
+            <a href="edit_advokat.php?id=<?= $data['id'] ?>" class="edit">Edit</a>
+            <a href="kelola_advokat.php?hapus=<?= $data['id'] ?>" class="hapus" onclick="return confirm('Yakin ingin menghapus?')">Hapus</a>
+        </td>
+    </tr>
+    <?php endwhile; ?>
+</table>
 
-        <?php if (empty($advokat)): ?>
-            <div class="empty-state">
-                <p>Tidak ada advokat terdaftar.</p>
-            </div>
-        <?php else: ?>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Foto</th>
-                        <th>Nama</th>
-                        <th>Email</th>
-                        <th>Spesialisasi</th>
-                        <th class="text-center">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($advokat as $adv): ?>
-                    <tr>
-                        <td><?= htmlspecialchars($adv['id']) ?></td>
-                        <td>
-                            <?php
-                                // Path foto advokat
-                                $photo_path = !empty($adv['foto']) ? '../uploads/' . htmlspecialchars($adv['foto']) : '../uploads/default.png';
-                                // Cek apakah file foto ada, jika tidak, gunakan default.png
-                                if (!file_exists($photo_path) || is_dir($photo_path)) {
-                                    $photo_path = '../uploads/default.png';
-                                }
-                            ?>
-                            <img src="<?= $photo_path ?>" alt="Foto Advokat" class="advokat-photo">
-                        </td>
-                        <td><?= htmlspecialchars($adv['nama']) ?></td>
-                        <td><?= htmlspecialchars($adv['email']) ?></td>
-                        <td><?= htmlspecialchars($adv['spesialisasi']) ?></td>
-                        <td class="text-center">
-                            <a href="detail_advokat.php?id=<?= htmlspecialchars($adv['id']) ?>" class="btn-action btn-primary">Detail</a>
-                            <a href="edit_advokat.php?id=<?= htmlspecialchars($adv['id']) ?>" class="btn-action btn-info">Edit</a> <a href="hapus_advokat.php?id=<?= htmlspecialchars($adv['id']) ?>" class="btn-action btn-danger" onclick="return confirm('Yakin ingin menghapus advokat ini?')">Hapus</a>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        <?php endif; ?>
-    </div>
 </body>
 </html>

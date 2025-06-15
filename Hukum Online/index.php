@@ -13,7 +13,6 @@ if (isset($_SESSION['user_id'])) {
     $result = $stmt->get_result();
     $user = $result->fetch_assoc();
 }
-
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -292,23 +291,23 @@ if (isset($_SESSION['user_id'])) {
     <div class="logo">
       <img src="logo.png" alt="Logo SaifulMLaw">
     </div>
-   <ul class="nav-links">
-    <li class="active"><a href="index.php">Beranda</a></li> <li><a href="langkah_hukum.php">Langkah Hukum</a></li>
-    <li><a href="riwayat_konsultasi.php">Riwayat</a></li>
+    <ul class="nav-links">
+      <li class="active"><a href="index.php">Beranda</a></li>
+      <li><a href="langkah_hukum.php">Langkah Hukum</a></li>
+      <li><a href="riwayat_konsultasi.php">Riwayat</a></li>
 
-    <?php if ($user): ?>
-      <li class="profile-container">
-       <img src="uploads/<?= htmlspecialchars($user['foto'] ?? 'default.png') ?>" alt="Foto Profil" class="profile-img" onclick="toggleProfileMenu()">
-        <div class="profile-dropdown" id="profileDropdown">
-          <a href="user_profile.php">Profil Saya</a>
-          <a href="logout.php" onclick="return confirm('Yakin ingin logout?')">Logout</a>
-        </div>
-      </li>
-    <?php else: ?>
-      <li><a href="login.php">Masuk</a></li>
-      <li><a href="signup.php">Daftar</a></li>
-    <?php endif; ?>
-</ul>
+      <?php if ($user): ?>
+        <li class="profile-container">
+          <img src="profile/<?= htmlspecialchars($user['foto'] ?? 'default.png') ?>" class="profile-img" onclick="toggleProfileMenu()">
+          <div class="profile-dropdown" id="profileDropdown">
+            <a href="user_profile.php">Profil Saya</a>
+            <a href="logout.php" onclick="return confirm('Yakin ingin logout?')">Logout</a>
+          </div>
+        </li>
+      <?php else: ?>
+        <li><a href="login.php">Masuk</a></li>
+      <?php endif; ?>
+    </ul>
   </nav>
 
   <!-- Hero Section -->

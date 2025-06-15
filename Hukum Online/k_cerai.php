@@ -1,137 +1,445 @@
 <?php
-// Koneksi database
+// Database connection
 $conn = new mysqli("localhost", "root", "", "layanan_hukum");
 if ($conn->connect_error) {
     die("Koneksi gagal: " . $conn->connect_error);
 }
 
-// Ambil ID Layanan 'Gugatan Perceraian' dari database
-$layanan_cerai_query = $conn->query("SELECT id FROM layanan WHERE nama_layanan = 'Gugatan Perceraian' LIMIT 1"); // <<< GANTI SESUAI NAMA DI DATABASE
-$layanan_id_cerai = 0;
-if ($layanan_cerai_query && $layanan_cerai_query->num_rows > 0) {
-    $layanan_id_cerai = $layanan_cerai_query->fetch_assoc()['id'];
-}
 
-// Ambil ID Advokat pertama (contoh saja, sesuaikan kebutuhan Anda)
-$advokat_contoh_query = $conn->query("SELECT id FROM advokat LIMIT 1");
-$advokat_id_contoh = 0;
-if ($advokat_contoh_query && $advokat_contoh_query->num_rows > 0) {
-    $advokat_id_contoh = $advokat_contoh_query->fetch_assoc()['id'];
-}
-
-if ($layanan_id_cerai == 0) {
-    error_log("Layanan 'Gugatan Perceraian' tidak ditemukan di database.");
-}
-if ($advokat_id_contoh == 0) {
-    error_log("Tidak ada advokat ditemukan di database.");
-}
-
-// Tidak perlu menutup koneksi di sini jika halaman masih butuh koneksi untuk rendering
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SaifulMLaw - Gugatan Perceraian</title>
+    <title>SaifulMLaw - Layanan Hukum</title>
     <style>
-        /* CSS yang sama dengan u_opini.php */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f6fa; color: #333; line-height: 1.6; }
-        .main-header { background-color: white; padding: 15px 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: space-between; position: relative; }
-        .main-header .logo-group { display: flex; align-items: center; }
-        .main-header .logo-group img { height: 50px; margin-right: 10px; }
-        .main-header .logo-group span { font-weight: bold; font-size: 20px; color: #22026f; }
-        .logo { cursor: pointer; transition: opacity 0.3s ease; }
-        .logo:hover { opacity: 0.8; }
-        .logo img { height: 50px; }
-        .back-btn { background: #d39e00; border: none; padding: 10px 15px; border-radius: 5px; font-size: 14px; cursor: pointer; color: white; font-weight: 500; transition: background-color 0.3s ease; text-decoration: none; display: flex; align-items: center; gap: 8px; }
-        .back-btn:hover { background-color: #b8890a; }
-        .title { font-size: 24px; color: #d39e00; font-weight: bold; position: absolute; left: 50%; transform: translateX(-50%); }
-        .container { max-width: 1200px; margin: 0 auto; padding: 30px; display: grid; grid-template-columns: 2fr 1fr; gap: 40px; }
-        .main-content { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 3px 15px rgba(0,0,0,0.1); }
-        .doc-header { text-align: center; margin-bottom: 40px; }
-        .doc-title { font-size: 28px; font-weight: bold; color: #d39e00; margin-bottom: 15px; }
-        .doc-subtitle { font-size: 16px; color: #666; margin-bottom: 30px; }
-        .case-info { background: #f8f9ff; padding: 25px; border-radius: 8px; margin-bottom: 30px; border-left: 4px solid #d39e00; }
-        .case-number { font-size: 18px; font-weight: bold; color: #d39e00; margin-bottom: 10px; }
-        .case-details { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
-        .detail-item { font-size: 14px; }
-        .detail-label { font-weight: bold; color: #333; margin-bottom: 5px; }
-        .detail-value { color: #666; }
-        .parties { margin: 30px 0; }
-        .party { margin-bottom: 25px; }
-        .party-type { font-weight: bold; color: #d39e00; font-size: 16px; margin-bottom: 10px; }
-        .party-details { background: #f9f9f9; padding: 15px; border-radius: 5px; font-size: 14px; line-height: 1.5; }
-        .timeline { margin: 30px 0; }
-        .timeline-title { font-size: 18px; font-weight: bold; color: #d39e00; margin-bottom: 20px; }
-        .timeline-item { display: flex; gap: 15px; margin-bottom: 15px; padding: 15px; background: #f9f9f9; border-radius: 5px; border-left: 3px solid #ff6b35; }
-        .timeline-number { background: #ff6b35; color: white; width: 25px; height: 25px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; flex-shrink: 0; }
-        .timeline-content { font-size: 14px; color: #333; }
-        .sidebar { display: flex; flex-direction: column; gap: 20px; }
-        .sidebar-card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 3px 15px rgba(0,0,0,0.1); }
-        .pesan-dokumen-btn { background: linear-gradient(135deg, #ff6b35, #ff8c42); color: white; border: none; padding: 15px 25px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3); transition: all 0.3s ease; text-decoration: none; display: block; text-align: center; }
-        .pesan-dokumen-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4); }
-        .price-info { text-align: center; margin-bottom: 20px; }
-        .price { font-size: 24px; font-weight: bold; color: #d39e00; }
-        .consultation-info { font-size: 14px; color: #666; margin-bottom: 20px; }
-        .related-links { list-style: none; }
-        .related-links li { margin-bottom: 10px; }
-        .related-links a { color: #d39e00; text-decoration: none; font-size: 14px; transition: color 0.3s ease; }
-        .related-links a:hover { color: #ff6b35; text-decoration: underline; }
-        .section-title { font-size: 16px; font-weight: bold; color: #333; margin-bottom: 15px; border-bottom: 2px solid #ff6b35; padding-bottom: 5px; }
-        @media (max-width: 768px) { .container { grid-template-columns: 1fr; padding: 20px; } .main-content { padding: 25px; } .case-details { grid-template-columns: 1fr; } .main-header { padding: 10px 20px; } .title { font-size: 20px; } }
-        .advokat-section { padding: 40px; background-color: fff; margin-bottom: 2rem; }
-        .advokat-list { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top:2rem; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f6fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background-color: white;
+            padding: 15px 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+        }
+        
+        .logo {
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+        
+        .logo:hover {
+            opacity: 0.8;
+        }
+        
+        .logo img {
+            height: 50px;
+        }
+        
+        .back-btn {
+            background: #d39e00;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            color: white;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .back-btn:hover {
+            background-color: #b8890a;
+        }
+        
+        .title {
+            font-size: 24px;
+            color: #d39e00;
+            font-weight: bold;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 40px;
+        }
+        
+        .main-content {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+        }
+        
+        .doc-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .doc-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #d39e00;
+            margin-bottom: 15px;
+        }
+        
+        .doc-subtitle {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .case-info {
+            background: #f8f9ff;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #d39e00;
+        }
+        
+        .case-number {
+            font-size: 18px;
+            font-weight: bold;
+            color: #d39e00;
+            margin-bottom: 10px;
+        }
+        
+        .case-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .detail-item {
+            font-size: 14px;
+        }
+        
+        .detail-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .detail-value {
+            color: #666;
+        }
+        
+        .parties {
+            margin: 30px 0;
+        }
+        
+        .party {
+            margin-bottom: 25px;
+        }
+        
+        .party-type {
+            font-weight: bold;
+            color: #d39e00;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .party-details {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .timeline {
+            margin: 30px 0;
+        }
+        
+        .timeline-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #d39e00;
+            margin-bottom: 20px;
+        }
+        
+        .timeline-item {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            border-left: 3px solid #ff6b35;
+        }
+        
+        .timeline-number {
+            background: #ff6b35;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        
+        .timeline-content {
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .sidebar-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+        }
+        
+        .pesan-dokumen-btn {
+            background: linear-gradient(135deg, #ff6b35, #ff8c42);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .pesan-dokumen-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+        }
+        
+        .price-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #d39e00;
+        }
+        
+        .consultation-info {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .related-links {
+            list-style: none;
+        }
+        
+        .related-links li {
+            margin-bottom: 10px;
+        }
+        
+        .related-links a {
+            color: #d39e00;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+        
+        .related-links a:hover {
+            color: #ff6b35;
+            text-decoration: underline;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #ff6b35;
+            padding-bottom: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                padding: 20px;
+            }
+            
+            .main-content {
+                padding: 25px;
+            }
+            
+            .case-details {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                padding: 10px 20px;
+            }
+            
+            .title {
+                font-size: 20px;
+            }
+        }
+        .advokat-section {
+            padding: 40px;
+            background-color: fff;
+            margin-bottom: 2rem;
+        }
+
+        .advokat-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: space-between;
+            margin-top: 2rem;
+        }
+
+        .advokat-card {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            width: calc(50% - 10px);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .advokat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        .advokat-card:nth-child(3) {
+            width: 100%;
+            max-width: calc(50% - 10px);
+            margin: 0 auto;
+        }
+
+        .advokat-card img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 15px;
+            border: 3px solid #d39e00;
+        }
+
+        .advokat-card h3 {
+            color: #d39e00;
+            font-size: 18px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .advokat-card p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .advokat-card a {
+            color: #ff6b35;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 15px;
+            border: 2px solid #ff6b35;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .advokat-card a:hover {
+            background-color: #ff6b35;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .advokat-card {
+                width: 100%;
+            }
+            
+            .advokat-card:nth-child(3) {
+                width: 100%;
+                max-width: none;
+            }
+        }
+    
     </style>
 </head>
 <body>
-
-<nav class="main-header">
-    <div class="logo-group">
-        <img src="logo.png" alt="Logo">
-        <span>SAIFULMLAW</span>
-    </div>
-    <a href="#" onclick="history.back(); return false;" class="back-btn">
-        &larr; Kembali
-    </a>
-</nav>
-
-<div class="container">
-    <div class="main-content">
-        <div class="doc-header">
-            <h1 class="doc-title">Pengajuan Gugatan Perceraian</h1>
-            <p class="doc-subtitle">Dapatkan bantuan hukum profesional untuk proses perceraian Anda.</p>
+    <div class="header">
+        <div class="logo" onclick="goToHome()">
+            <img src="logo.png" alt="Logo SaifulMLaw">
         </div>
+        <div class="title">Pembuatan Surat Gugatan Cerai</div>
+        <a href="langkah_hukum.php" class="back-btn">
+            ← Kembali
+        </a>
+    </div>
 
-        <div class="case-info">
-            <p class="case-number">Informasi Umum Layanan</p>
-            <div class="case-details">
-                <div class="detail-item">
-                    <div class="detail-label">Jenis Layanan</div>
-                    <div class="detail-value">Pendampingan dan Pengajuan Gugatan Cerai</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Tujuan</div>
-                    <div class="detail-value">Membantu proses perceraian secara legal dan efisien sesuai peraturan yang berlaku.</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Cakupan</div>
-                    <div class="detail-value">Penyusunan dokumen, pendaftaran, pendampingan sidang (opsional).</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Waktu Proses</div>
-                    <div class="detail-value">Bervariasi tergantung kompleksitas kasus dan jadwal pengadilan.</div>
+    
+    <div class="container">
+        <div class="main-content">
+            <div class="doc-header">
+                <p class="doc-subtitle">Pembuatan surat gugatan cerai / permohonan Talak oleh konsultan hukum Justika. Anda akan dituntun menyampaikan alasan perceraian disertai dasar hukum agar dapat memberikan gambaran kepada hakim.</p>
+            </div>
+            
+            <div class="case-info">
+                <div class="case-number">Perkara dalam Rp.xxx</div>
+                
+                <div class="case-details">
+                    <div class="detail-item">
+                        <div class="detail-label">(^O^) (T^T)</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Instansi / Lembaga Hukum :</div>
+                        <div class="detail-value">+62 8xxx<br>DEPAN | Website: xx:xx - xx:xx WIB</div>
+                    </div>
                 </div>
             </div>
-        </div>
-
-<div class="parties">
+            
+            <div class="parties">
                 <div class="party">
                     <div class="party-type">Pengacara</div>
                     <div class="advokat-list">
                         <?php
-                        $result = $conn->query("SELECT * FROM advokat WHERE keahlian LIKE '%Ketenagakerjaan%'");
+                        $result = $conn->query("SELECT * FROM advokat WHERE keahlian LIKE '%Perceraian%'");
                         while ($row = $result->fetch_assoc()):
                         ?>
                         <div class="advokat-card">
@@ -146,70 +454,115 @@ if ($advokat_id_contoh == 0) {
                 </div>
             </div>
             
-        <div class="timeline">
-            <h2 class="timeline-title">Bagaimana Kami Membantu?</h2>
-            <div class="timeline-item">
-                <div class="timeline-number">1</div>
-                <div class="timeline-content">
-                    <div class="detail-label">Konsultasi Awal & Pengumpulan Data</div>
-                    <div class="detail-value">Diskusikan kasus Anda dan siapkan dokumen yang diperlukan.</div>
+            <div class="timeline">
+                <div class="timeline-title">Tahapan Konsultasi</div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-number">1</div>
+                    <div class="timeline-content">
+                     Mengajukan dokumen dan persyaratan awal untuk proses konsultasi hukum
+                    </div>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-number">2</div>
+                    <div class="timeline-content">
+                     Verifikasi dan review dokumen yang telah diserahkan
+                    </div>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-number">3</div>
+                    <div class="timeline-content">
+                     Analisis kasus dan penyusunan strategi hukum yang tepat
+                    </div>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-number">4</div>
+                    <div class="timeline-content">
+                     Konsultasi dan diskusi mengenai opsi-opsi hukum yang tersedia
+                    </div>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-number">5</div>
+                    <div class="timeline-content">
+                     Penyusunan dan persiapan dokumen hukum yang diperlukan
+                    </div>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-number">6</div>
+                    <div class="timeline-content">
+                     Finalisasi dokumen dan penyerahan hasil konsultasi hukum
+                    </div>
                 </div>
             </div>
-            <div class="timeline-item">
-                <div class="timeline-number">2</div>
-                <div class="timeline-content">
-                    <div class="detail-label">Penyusunan Gugatan & Pendaftaran</div>
-                    <div class="detail-value">Kami akan menyusun gugatan yang kuat dan mendaftarkannya ke pengadilan.</div>
+            
+            <div class="section-title">Riwayat Langkah yang ditutup</div>
+            <ol style="margin-left: 20px; margin-bottom: 20px;">
+                <li>Konsultasi awal dan analisis kasus</li>
+                <li>Pengumpulan dokumen dan bukti pendukung</li>
+                <li>Review dan verifikasi kelengkapan berkas</li>
+            </ol>
+            
+            <div class="section-title">Riwayat Langkah yang belum ditutup</div>
+            <ol style="margin-left: 20px;">
+                <li>Penyusunan opini hukum final</li>
+                <li>Validasi dan finalisasi dokumen</li>
+            </ol>
+        </div>
+        
+        <div class="sidebar">
+            <div class="sidebar-card">
+                <div class="price-info">
+                    <div class="price">Rp.xxx</div>
                 </div>
-            </div>
-            <div class="timeline-item">
-                <div class="timeline-number">3</div>
-                <div class="timeline-content">
-                    <div class="detail-label">Proses Mediasi & Persidangan</div>
-                    <div class="detail-value">Pendampingan selama mediasi dan proses persidangan (jika diperlukan).</div>
-                </div>
-            </div>
-            <div class="timeline-item">
-                <div class="timeline-number">4</div>
-                <div class="timeline-content">
-                    <div class="detail-label">Putusan Pengadilan & Eksekusi</div>
-                    <div class="detail-value">Mengikuti proses hingga putusan pengadilan dan membantu dalam eksekusi jika ada.</div>
-                </div>
+                <button class="pesan-dokumen-btn" onclick="pesanDokumen()">
+                    Pesan Dokumen
+                </button>
             </div>
         </div>
-
     </div>
-
-    <div class="sidebar">
-        <div class="sidebar-card">
-            <div class="price-info">
-                <p class="section-title">Biaya Layanan</p>
-                <p class="price">Rp. 1.500.000</p> <p class="consultation-info">Harga dapat bervariasi tergantung kompleksitas kasus.</p>
-            </div>
-            <?php if ($advokat_id_contoh > 0 && $layanan_id_cerai > 0): ?>
-                <a href="pembayaran.php?advokat_id=<?= htmlspecialchars($advokat_id_contoh) ?>&layanan_id=<?= htmlspecialchars($layanan_id_cerai) ?>" class="pesan-dokumen-btn">
-                    Pesan Layanan Ini
-                </a>
-            <?php else: ?>
-                <p style="color: red; text-align: center;">Layanan tidak tersedia. Mohon hubungi admin.</p>
-            <?php endif; ?>
-        </div>
-
-        <div class="sidebar-card">
-            <h3 class="section-title">Layanan Terkait</h3>
-            <ul class="related-links">
-                <li><a href="k_kawin.php">Perjanjian Pra-Nikah</a></li>
-                <li><a href="u_konsultasi_online.php">Konsultasi Online</a></li>
-                <li><a href="u_pendampingan.php">Pendampingan Hukum</a></li>
-            </ul>
-        </div>
-    </div>
-</div>
-
+    
+    <script>
+        function goToHome() {
+            window.location.href = 'index.php';
+        }
+        
+        function pesanDokumen() {
+            if (confirm('Apakah Anda ingin melanjutkan pemesanan dokumen hukum ini dengan biaya Rp.xxx?')) {
+                alert('Terima kasih! Anda akan dihubungi untuk proses selanjutnya.');
+            }
+        }
+        
+        function openLink(type) {
+            alert(`Membuka halaman ${type}`);
+        }
+        
+        // Add smooth scrolling for better UX
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+        
+        // Add loading animation for buttons
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('click', function() {
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = '';
+                }, 150);
+            });
+        });
+    </script>
 </body>
 </html>
-<?php
-if ($conn) {
-    $conn->close();
-}
-?>
